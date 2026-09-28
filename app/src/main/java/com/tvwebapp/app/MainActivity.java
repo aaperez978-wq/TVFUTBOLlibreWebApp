@@ -6,6 +6,8 @@ import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.webkit.CookieManager;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -23,27 +25,35 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        FrameLayout layout = new FrameLayout(this);
-        layout.setBackgroundColor(0xFF000000);
-
-        webView = new WebView(this);
-        layout.addView(webView, new FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT));
-
-        progressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
-        progressBar.setMax(100);
-        FrameLayout.LayoutParams pbParams = new FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, 8);
-        layout.addView(progressBar, pbParams);
-
-        setContentView(layout);
+        getWindow().setFlags(
+            WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+            WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED
+        );
 
         getWindow().getDecorView().setSystemUiVisibility(
             View.SYSTEM_UI_FLAG_FULLSCREEN |
             View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
             View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
         );
+
+        FrameLayout layout = new FrameLayout(this);
+        layout.setBackgroundColor(0xFF000000);
+
+        webView = new WebView(this);
+        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        layout.addView(webView, new FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT));
+
+        progressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        progressBar.setMax(100);
+        layout.addView(progressBar, new FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, 8));
+
+        setContentView(layout);
+
+        CookieManager.getInstance().setAcceptCookie(true);
+        CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
 
         WebSettings s = webView.getSettings();
         s.setJavaScriptEnabled(true);
@@ -58,11 +68,13 @@ public class MainActivity extends Activity {
         s.setAllowContentAccess(true);
         s.setSupportMultipleWindows(false);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-        s.setCacheMode(WebSettings.LOAD_DEFAULT);
+        s.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        s.setBlockNetworkImage(false);
+        s.setLoadsImagesAutomatically(true);
         s.setUserAgentString(
-            "Mozilla/5.0 (Linux; Android 11; SHIELD Android TV) " +
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
             "AppleWebKit/537.36 (KHTML, like Gecko) " +
-            "Chrome/114.0.0.0 Mobile Safari/537.36"
+            "Chrome/120.0.0.0 Safari/537.36"
         );
 
         webView.setWebChromeClient(new WebChromeClient() {
@@ -81,6 +93,10 @@ public class MainActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 progressBar.setVisibility(View.GONE);
+                view.evaluateJavascript(
+                    "document.body.style.backgroundColor='#000000';" +
+                    "window.scrollTo(0,0);", null
+                );
             }
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
